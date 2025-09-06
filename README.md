@@ -39,15 +39,23 @@ flowchart TD
     F --> H
 ````
 
-## 🏗️ Agent Architecture
+## 🏗️ Agent Tower Workflow
 
 ```mermaid
 flowchart TD
     A[ITOM Alert] --> B[Watcher Agent]
     B --> C[Investigator Agent]
     C --> D[Governor Agent]
-    D --> E[Executor Agent]
-    E --> F[Incident Resolved]
+
+    %% Governor decision point
+    D -->|Auto Resolve| E[Executor Agent]
+    D -->|Escalate| F[Incident Created in ServiceNow]
+    D -->|Notify| G[Human Agent]
+
+    %% End states
+    E --> H[Closed Incident]
+    F --> H
+    G --> H
 ```
 
 ---
