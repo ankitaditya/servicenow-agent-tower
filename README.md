@@ -39,9 +39,7 @@ flowchart TD
     F --> H
 ````
 
-## Agentic Architecture
-
-## 🏗️ Architecture
+## 🏗️ Agent Architecture
 
 ```mermaid
 flowchart TD
