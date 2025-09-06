@@ -1,0 +1,24 @@
+# 1️⃣ Base image
+FROM node:20-alpine
+
+# 2️⃣ Workdir
+WORKDIR /usr/src/app
+
+# 3️⃣ Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# 4️⃣ Install deps
+RUN npm ci
+
+# 5️⃣ Copy source
+COPY src ./src
+
+# 6️⃣ Compile TS
+RUN npm run build
+
+# 7️⃣ Expose port
+EXPOSE 3000
+
+# 8️⃣ Start
+CMD ["node", "dist/index.js"]
