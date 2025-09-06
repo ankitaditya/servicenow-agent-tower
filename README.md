@@ -39,6 +39,19 @@ flowchart TD
     F --> H
 ````
 
+## Agentic Architecture
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart TD
+    A[ITOM Alert] --> B[Watcher Agent]
+    B --> C[Investigator Agent]
+    C --> D[Governor Agent]
+    D --> E[Executor Agent]
+    E --> F[Incident Resolved]
+```
+
 ---
 
 ## 🚀 Getting Started
