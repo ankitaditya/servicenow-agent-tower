@@ -1,20 +1,44 @@
-import { Incident } from "../db/incidentRepo";
+// src/agents/investigatorAgent.ts
+import { incidentRepo, Incident } from "../db/incidentRepo";
 import { governorAgent } from "./governorAgent";
-import { executorAgent } from "./executorAgent";
+import { Logger } from "../utils/logger";
+import { metrics } from "../utils/metrics";
 
 export const investigatorAgent = {
+  /**
+   * Analyze the incident and identify root cause
+   * @param incident Incident object from DB
+   */
   async investigate(incident: Incident) {
-    console.log("[Investigator] Analyzing incident:", incident.id);
+    try {
+      Logger.info("[Investigator] Starting investigation", { incidentId: incident.id });
+      metrics.increment("alerts.received"); // counting received incidents for monitoring
 
-    // Dummy root‑cause logic – replace with ML / rule engine
-    const rootCause = incident.title.includes("critical")
-      ? "Infrastructure Failure"
-      : "User Error";
+      // ===== ROOT-CAUSE LOGIC (replace with ML/rule engine later) =====
+      let rootCause: string;
+      if (incident.title.toLowerCase().includes("critical")) {
+        rootCause = "Infrastructure Failure";
+      } else if (incident.title.toLowerCase().includes("warning")) {
+        rootCause = "Configuration Issue";
+      } else {
+        rootCause = "User Error";
+      }
+      Logger.debug("[Investigator] Root cause identified", { incidentId: incident.id, rootCause });
 
-    // Update incident with root cause
-    await incidentRepo.update(incident.id, { description: `${incident.description}\nRoot cause: ${rootCause}` });
+      // ===== UPDATE INCIDENT =====
+      await incidentRepo.update(incident.id, {
+        description: `${incident.description}\nRoot cause: ${rootCause}`,
+        status: "investigated",
+        rootCause,
+      });
+      metrics.increment("incidents.created"); // metric for incidents updated/processed
 
-    // Pass to governor for decision
-    governorAgent.decide(incident, rootCause);
+      // ===== PASS TO GOVERNOR FOR DECISION =====
+      await governorAgent.decide(incident, rootCause);
+      Logger.info("[Investigator] Incident passed to Governor", { incidentId: incident.id });
+    } catch (err: any) {
+      Logger.error("[Investigator] Failed to investigate incident", { incidentId: incident.id, error: err.stack });
+      metrics.increment("alerts.failed");
+    }
   },
 };

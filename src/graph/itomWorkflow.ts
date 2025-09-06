@@ -1,47 +1,47 @@
-import { AgentState, StateGraph, RunnableConfig } from "@langchain/langgraph";
+import { StateGraph, StateGraphArgs } from "@langchain/langgraph";
 import { watcherAgent } from "../agents/watcherAgent";
 import { investigatorAgent } from "../agents/investigatorAgent";
 import { governorAgent } from "../agents/governorAgent";
 import { executorAgent } from "../agents/executorAgent";
 
-/**
- * State schema
- */
-interface ITOMState extends AgentState {
-  alert?: any;
-  incidentId?: string;
-  rootCause?: string;
-  action?: string;
-}
+/** Channels */
+type MyChannels = {
+  incident: string;
+  action: "AUTO_REPAIR" | "ESCALATE";
+};
 
-/**
- * A super‑simple workflow that chains the four agents
- */
-export const itomWorkflow = new StateGraph<ITOMState>();
+/** Channels definition */
+const channels: StateGraphArgs<MyChannels>["channels"] = {
+  incident: { value: null, default: () => "" },
+  action: { value: null, default: () => "AUTO_REPAIR" },
+};
 
+/** Workflow */
+export const itomWorkflow = new StateGraph<MyChannels>({ channels });
+
+/** Nodes */
 itomWorkflow
   .addNode("watcher", async (state) => {
-    // Normally triggered by an external event, here we fake it
-    const fakeAlert = { id: "evt-42", type: "cpu", severity: "warning" };
+    const fakeAlert = { id: "evt-42", type: "cpu", severity: "low", source: "watcher", payload: state, receivedAt: new Date() };
     watcherAgent.handleAlert(fakeAlert);
-    return { ...state, alert: fakeAlert };
+    return { ...state, incident: fakeAlert.id };
   })
-  .addNode("investigator", async (state) => {
-    investigatorAgent.investigate(state.incidentId!);
+  itomWorkflow.addNode("investigator", async (state) => {
+    investigatorAgent.investigate(state.incident);
     return state;
   })
-  .addNode("governor", async (state) => {
-    governorAgent.decide(state.incidentId!, state.rootCause!);
+  itomWorkflow.addNode("governor", async (state) => {
+    governorAgent.decide(state.incident, state.rootCause!);
     return state;
   })
-  .addNode("executor", async (state) => {
-    executorAgent.execute(state.incidentId!, state.action!);
+  itomWorkflow.addNode("executor", async (state) => {
+    executorAgent.execute(state.incident, state.action!);
     return state;
   })
-  .setEntryPoint("watcher")
-  .setFinishPoint("executor");
+  itomWorkflow.setEntryPoint("watcher")
+  itomWorkflow.setFinishPoint("executor");
 
+/** Run workflow */
 export async function runWorkflow() {
-  const cfg: RunnableConfig = { configurable: {} };
-  await itomWorkflow.invoke({}, cfg);
+  await itomWorkflow.compile().invoke("Check the work")
 }
